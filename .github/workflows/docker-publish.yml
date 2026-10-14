@@ -1,0 +1,58 @@
+# Название процесса, которое будет отображаться во вкладке Actions.
+name: Build and publish Go service
+
+# Запускать workflow при отправке изменений в main.
+# workflow_dispatch позволяет запустить его вручную из GitHub.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Даём workflow только право читать исходный код репозитория.
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    # GitHub создаст отдельную виртуальную машину для выполнения job.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Получаем файлы проекта на виртуальную машину.
+      - name: Get repository code
+        uses: actions/checkout@v6
+
+      # Устанавливаем версию Go, указанную в go.mod.
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Запускаем проверки Go-проекта.
+      - name: Run Go tests
+        run: go test ./...
+
+      # Подготавливаем Docker Buildx для сборки образа.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Входим в Docker Hub.
+      # Имя пользователя и токен берутся из секретов GitHub.
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Собираем образ по Dockerfile в корне проекта
+      # и отправляем его в Docker Hub.
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/go-web-service:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/go-web-service:latest
