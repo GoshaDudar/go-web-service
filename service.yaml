@@ -1,0 +1,27 @@
+# Версия API для Service
+apiVersion: v1
+
+# Тип ресурса Kubernetes
+kind: Service
+
+metadata:
+  # Имя станет адресом сервиса внутри кластера
+  name: go-web-service
+
+spec:
+  # ClusterIP доступен только внутри кластера
+  type: ClusterIP
+
+  # Service будет направлять запросы к Pods с этой меткой
+  selector:
+    app: go-web-service
+
+  ports:
+    - name: http
+      protocol: TCP
+
+      # Порт Service, к которому обращаются другие компоненты
+      port: 80
+
+      # Порт приложения внутри Pod
+      targetPort: 8080

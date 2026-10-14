@@ -1,0 +1,71 @@
+# Версия API для ресурса Deployment
+apiVersion: apps/v1
+
+# Тип ресурса Kubernetes
+kind: Deployment
+
+metadata:
+  # Имя Deployment
+  name: go-web-service
+
+spec:
+  # Желаемое количество копий приложения
+  replicas: 2
+
+  # Deployment будет управлять Pods с такой меткой
+  selector:
+    matchLabels:
+      app: go-web-service
+
+  # Описание создаваемых Pods
+  template:
+    metadata:
+      # Метка Pod должна совпадать с selector.matchLabels выше
+      labels:
+        app: go-web-service
+
+    spec:
+      containers:
+        - name: go-web-service
+
+          # Образ приложения из Docker Hub
+          image: goshadudar/go-service:1.1
+
+          ports:
+            # Приложение слушает порт 8080 внутри контейнера
+            - name: http
+              containerPort: 8080
+
+          # Настройки, которые приложение получает при запуске
+          envFrom:
+            - configMapRef:
+                name: go-web-service-config
+
+            - secretRef:
+                name: go-web-service-secret
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
